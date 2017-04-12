@@ -5,14 +5,15 @@
                            "autry": "<https://www.autry_imageserverRootUrl>","wam": "<https://www.wam_imageserverRootUrl>","puam": "<https://www.puam_imageserverRootUrl>",
                         "dma": "<https://www.dma_imageserverRootUrl>","cbm": "<https://www.cbm_imageserverRootUrl>","npg": "<https://www.npg_imageserverRootUrl>",
   "ccma": "<ccma imageserverRootUrl>"},
-   "manifestServerRootUrl": "<https://www.manifest_server_root_url>",
+   "manifestServerRootUrl": "https://jainn3.github.io/iiif-manifest-museum-II",
   "manifestServerRootUrl123": {"saam": "<saam_manifestServerRootUrl>","gm": "<gm_manifestServerRootUrl>", "ima": "<ima_manifestServerRootUrl>",
                            "autry": "<autry_manifestServerRootUrl>","wam": "<wam_manifestServerRootUrl>","puam": "<puam_imageserverRootUrl>",
                         "dma": "<dma_manifestServerRootUrl>","cbm": "<cbm_manifestServerRootUrl>","npg": "<npg_manifestServerRootUrl>",
   "ccma": "<ccma manifestServerRootUrl>"},
+  "thumbnailServerRootUrl":"https://jainn3.github.io/iiif-manifest-museum-II",
   
   "projectPath": "",
-  "manifestLabel": "Manifest",
+  "manifestLabel": "Manifest file for the museum",
 
   "createChapters": "n",
   

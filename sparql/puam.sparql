@@ -9,30 +9,31 @@ PREFIX dct: <http://purl.org/dc/terms/>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX schema: <http://schema.org/>
 
-SELECT ?image ?right ?description ?rights_statement ?x ?caption
+SELECT ?image (SAMPLE(?rights) AS ?right) (SAMPLE(?descriptions) AS ?description) (SAMPLE(?rights_statements) AS ?rights_statement) (SAMPLE(?uri) AS ?x) (SAMPLE(?captions) AS ?caption)
 WHERE {
   GRAPH <http://data.americanartcollaborative.org/puam>
   {
-?x a crm:E22_Man-Made_Object ;
+?uri a crm:E22_Man-Made_Object ;
   crm:P138i_has_representation ?image .
 ?image a crm:E38_Image .
 
     OPTIONAL {
-?x crm:P102_has_title ?cap .
-?cap rdf:value ?caption .
+?uri crm:P102_has_title ?cap .
+?cap rdf:value ?captions .
     }
 OPTIONAL {
-  ?image rdfs:label ?description .
+  ?image rdfs:label ?descriptions .
 }
 OPTIONAL {
-  ?image crm:P104_is_subject_to ?right .
-  ?right a crm:E30_Right .
+  ?image crm:P104_is_subject_to ?rights .
+  ?rights a crm:E30_Right .
 }
 OPTIONAL {
   ?image crm:P67i_is_referred_to_by ?rights_statement_class .
   ?rights_statement_class a crm:E33_Linguistic_Object ;
     crm:P2_has_type <http://vocab.getty.edu/aat/300055547> ;
-    rdf:value ?rights_statement .
+    rdf:value ?rights_statements .
 }
   }
 }
+GROUP BY ?image

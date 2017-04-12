@@ -1,5 +1,7 @@
-import re
-
+import base64
+import os
+import urllib
+from PIL import Image
 
 class FileNameParser(object):
     def __init__(self, config):
@@ -12,6 +14,8 @@ class FileNameParser(object):
         self.pageLabel = config['pageLabel']
         self.imageExtension = config['imageExtension']
         self.createChapters = (config['createChapters'] == 'y')
+        self.thumbnailServerRootUrl = config['thumbnailServerRootUrl']
+        self.thumbnailsize = (80,100)
         self.canvas_id_set =  set()
 
     def getid(self,filename, museum):
@@ -54,64 +58,51 @@ class FileNameParser(object):
         else:
             return filename
 
-    def parse(self, file_name, museum, caption):
+    def parse(self, file_name, museum, caption, uri_key):
         if self.createChapters:
             return self.parse_with_chapters(file_name)
         else:
-            return self.parse_without_chapters(file_name, museum, caption)
+            return self.parse_without_chapters(file_name, museum, caption, uri_key)
 
-    def parse_without_chapters(self, file_name, museum, caption):
-        '''
-        pattern = r'^%s\.([^.]+)\.%s$' % (self.projectPath,
-                                          self.imageExtension)
-        m = re.match(pattern, file_name)
-        if m == None and 1 == 0:
-            print 'ERROR file name does not match: %s' % file_name
-            return None
-        '''
-        #path to info json
+    def parse_without_chapters(self, file_name, museum, caption, uri_key):
         _id = self.getid(file_name,museum)
-        # page_padded = m.group(1)
         if museum in 'ccma':
             page_padded = file_name.split('/')[-5]
         else:
             page_padded = file_name.split('/')[-1]
         page_unpadded = file_name
-        # page_unpadded = re.sub(r'^0+', r'', page_padded)
 
         ident = '%s' % (page_padded)
 
+        '''
         if "<" in self.manifestServerRootUrl:
            _manifestServerRootUrl = self.getImageServer(file_name,museum)
         else:
             _manifestServerRootUrl = self.manifestServerRootUrl.repalce("<","").replace(">","")
+        '''
+        _manifestServerRootUrl = self.getImageServer(file_name,museum)
         image_id = '%s/annotation/%s' % (_manifestServerRootUrl, ident)
         canvas_id = '%s/canvas/%s' % (_manifestServerRootUrl, ident)
 
-
-        #canvas_id = '%s/canvas/%s' % (self.manifestServerRootUrl, ident)
-        #canvas_id = file_name
         if canvas_id in self.canvas_id_set:
-            #print "canvas id " + file_name
-            #print canvas_id
             return None
         self.canvas_id_set.add(canvas_id)
-        # canvas_label = '%s %s, %s %s' % (self.chapterLabel, chapter_unpadded, self.pageLabel, page_unpadded)
         canvas_label = '%s' % (caption)
-
-        #image_id = '%s/annotation/%s' % (self.manifestServerRootUrl, ident)
 
         if museum in "ccma":
             image_resource_id = file_name
         else:
             image_resource_id = '%s/full/full/0/native.jpg' % (_id)
-        #image_resource_id = '%s/%s/full/full/0/native.jpg' % (self.imageServerRootUrl[museum], ident)
-        #image_resource_id = file_name
-
-        #image_service_id = '%s/%s' % (self.imageServerRootUrl[museum], ident)
         image_service_id = _id
 
         thumbnail_id = self.get_thumbnail(file_name,museum)
+        '''
+        try:
+            thumbnail_url = self.get_thumbnail_url(museum,uri_key,file_name)
+        except:
+            thumbnail_url = "unknown"
+
+        '''
         result = dict()
         result['file_name'] = file_name
         result['page_padded'] = page_padded
@@ -122,43 +113,66 @@ class FileNameParser(object):
         result['image_resource_id'] = image_resource_id
         result['image_service_id'] = image_service_id
         result['thumbnail_id'] = thumbnail_id
+
         return result
 
-    '''
-    def parse_with_chapters(self, file_name):
-        pattern = r'^%s\.([^.]+)\.([^.]+)\.%s$' % (self.projectPath,
-                                                   self.imageExtension)
-        m = re.match(pattern, file_name)
-        if m == None:
-            print 'ERROR file name does not match: %s' % file_name
-            return None
+    def geturlid(self,img_link, museum):
+        try:
+            if "ima" in museum:
+                fname = img_link.split("/")[-2]
+            elif "ccma" in museum:
+                fname = img_link.split("/")[-1]
+                if fname in "default.jpg":
+                    fname = img_link.split("/")[-5]
+            else:
+                fname = img_link.split("/")[-1]
+            fname = fname.replace(".jpg","")
+        except:
+            print img_link
+            print museum
+            raise
+        return fname
+    def get_thumbnail_url(self, museum, uri_key, img_link):
+        if True:
+            return self.img2base64(img_link)
+        if "ima" in museum:
+            fname = img_link.split("/")[-2] + ".jpg"
+        elif "ccma" in museum:
+            fname = img_link.split("/")[-1]
+            if fname in "default.jpg":
+                fname = img_link.split("/")[-5] + ".jpg"
+        else:
+            fname = img_link.split("/")[-1]
 
-        chapter_padded = m.group(1)
-        page_padded = m.group(2)
+        thummnail = os.path.join("thumbnails", museum, fname)
 
-        chapter_unpadded = re.sub(r'^0+', r'', chapter_padded)
-        page_unpadded = re.sub(r'^0+', r'', page_padded)
-        # add image extension here.
-        ident = '%s-%s-%s' % (self.projectPath, chapter_padded, page_padded)
+        thummnail = thummnail.replace(".jpg",".png")
 
-        canvas_id = '%s/canvas/%s' % (self.manifestServerRootUrl, ident)
-        # canvas_label = '%s %s, %s %s' % (self.chapterLabel, chapter_unpadded, self.pageLabel, page_unpadded)
-        canvas_label = '%s.%s' % (chapter_unpadded, page_unpadded)
+        print thummnail + "     " + img_link
 
-        image_id = '%s/annotation/%s' % (self.manifestServerRootUrl, ident)
-        image_resource_id = '%s/%s/full/full/0/native.jpg' % (self.imageServerRootUrl, ident)
-        image_service_id = '%s/%s' % (self.imageServerRootUrl, ident)
+        if not os.path.isfile(thummnail):
+            with open("tmp/img_file.jpg", "wb") as f:
+                f.write(urllib.urlopen(img_link).read())
+            tmp_img = Image.open("tmp/img_file.jpg")
+            image = tmp_img.resize(self.thumbnailsize,Image.ANTIALIAS)
+            image.save(thummnail)
 
-        result = dict()
-        result['file_name'] = file_name
-        result['chapter_padded'] = chapter_padded
-        result['chapter_unpadded'] = chapter_unpadded
-        result['page_padded'] = page_padded
-        result['page_unpadded'] = page_unpadded
-        result['canvas_id'] = canvas_id
-        result['canvas_label'] = canvas_label
-        result['image_id'] = image_id
-        result['image_resource_id'] = image_resource_id
-        result['image_service_id'] = image_service_id
-        return result
-        '''
+        with open(thummnail) as img:
+            thumb_string = base64.b64encode(img.read())
+        base64out = "data:image/png;base64," + str(thumb_string)
+        #return os.path.join(self.thumbnailServerRootUrl,thummnail)
+        return base64out
+
+        #Convert image to base64 thumbnail
+
+    def img2base64(self,img_link):
+      with open("tmp/img_file.jpg", "wb") as f:
+          f.write(urllib.urlopen(img_link).read())
+      tmp_img = Image.open("tmp/img_file.jpg")
+      tmp_thumb = tmp_img.resize((250, 250), Image.ANTIALIAS)
+      tmp_thumb.save("tmp/thumb_file.jpg")
+      with open("tmp/thumb_file.jpg", "rb") as img:
+        thumb_string = base64.b64encode(img.read())
+      base64out = "data:image/jpeg;base64," + str(thumb_string)
+      print base64out
+      return(base64out)

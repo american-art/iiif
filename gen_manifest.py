@@ -12,19 +12,13 @@ import downloadData
 
 class App(object):
     def __init__(self, config_file):
-        #self.root_dir = os.environ['GEN_MANIFEST_HOME']
-        #self.root_dir = 'C:\Users\Nimesh\PycharmProjects\iiif-manifest-museum-II-master'
-        #self.file_names_file = file_names_file
         self.config = self.get_config(config_file)
         self.fileNameParser = FileNameParser(self.config)
         self.imageParser = ImageParser()
-
-
         self.blackList = set()
-        blackList_URL_Folder = os.path.join(os.path.dirname(os.path.realpath(__file__)),'museum-no-reference-urls')
-        blacklistFile = os.path.join(blackList_URL_Folder,"blackList.txt")
+        blackList_URL_Folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'museum-no-reference-urls')
+        blacklistFile = os.path.join(blackList_URL_Folder, "blackList.txt")
         self.loadFile(blacklistFile)
-
         self.fob = open(blacklistFile, 'a')
 
     def get_config(self, config_file):
@@ -43,29 +37,19 @@ class App(object):
         return config
 
     def run(self):
-        files = []
-        '''
-        with open(self.file_names_file) as f:
-            for line in f:
-                file_name = line.strip()
-                files.append(file_name)
-        '''
-        manifest = self.build_manifest(files)
-        print json.dumps(manifest, indent=2)
+        manifest = self.build_manifest()
 
-    def build_manifest(self, files):
+    def build_manifest(self):
+
         config = self.config
         x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16))
         manifestServerRootUrl = config['manifestServerRootUrl']
-        projectPath = config['projectPath']
-        manifestServerRootUrl = manifestServerRootUrl.replace("<","").replace(">","")
-
+        manifestServerRootUrl = manifestServerRootUrl.replace("<", "").replace(">", "")
         manifestId = '%s/manifest/%s' % (manifestServerRootUrl, x)
         manifestLabel = config['manifestLabel']
         sequenceId = '%s/sequence/%s/0' % (manifestServerRootUrl, x)
 
         m = {
-            #'@context': 'http://www.shared-canvas.org/ns/context.json',
             '@context': 'http://iiif.io/api/presentation/2/context.json',
             '@type': 'sc:Manifest',
             '@id': manifestId,
@@ -79,73 +63,99 @@ class App(object):
                     'canvases': []
                 }
             ],
-            'structures': []
+            'structures': [],
+            'seealso': {
+                '@id': "",
+                'format': "text/rdf"
+            }
         };
 
         if config.get('metadata'):
             m['metadata'] = config['metadata']
 
-
         res1 = downloadData.sparqlQuery()
         print len(res1)
 
-        cachedFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)),'museum-cached-data')
-        manifestFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)),'museum-manifests')
+        cachedFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'museum-cached-data')
+        manifestFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'museum-manifests')
 
-        for base,res in res1.iteritems():
+        for base, res in res1.iteritems():
             m['sequences'][0]['canvases'][:] = []
-            cachedFile = os.path.join(cachedFolder,base + '.txt')
+            cachedFile = os.path.join(cachedFolder, base + '.txt')
             print "Executing " + base + "....."
             self.imageParser.loadFile(cachedFile)
             self.imageParser.openFile(cachedFile)
-            #for mus in res:
             for artist in res:
-                    #print artist
-                    try:
-                        f_name = artist["image"]["value"]
-                        if 'ccma' in base:
-                            f_name = f_name.replace("512","512,")
-                    except:
-                        f_name = "unknown"
-                        pass
-                    try:
-                        caption = artist["caption"]["value"]
-                    except:
-                        caption = "unknown"
-                        pass
-                    file_info = self.fileNameParser.parse(f_name,base, caption)
-                    if not file_info:
-                        continue
-                    if file_info['file_name'] in self.blackList:
-                        continue
-                    canvas = self.build_canvas(file_info, caption)
-                    if canvas:
-                        m['sequences'][0]['canvases'].append(canvas)
-                    else:
-                        museum = 'unknown'
-                        self.fob.write(base + '\t' + file_info['file_name'] + '\n')
+                m['sequences'][0]['canvases'][:] = []
+                # print artist
+                try:
+                    uri_key = artist["x"]["value"].split("/")[-1]
+                    m['seealso']['@id'] = artist["x"]["value"]
+                except:
+                    m['seealso']['@id'] = "unknown"
+                    uri_key = "unknown"
+                    pass
+                try:
+                    f_name = artist["image"]["value"]
+                    if 'ccma' in base:
+                        f_name = f_name.replace("512", "512,")
+                except:
+                    f_name = "unknown"
+                    pass
+
+                manifest_file_id = self.fileNameParser.geturlid(f_name, base)
+                manifestfilename = os.path.join(manifestFolder, base, manifest_file_id + '.json')
+                if os.path.exists(manifestfilename):
+                    continue
+
+                try:
+                    caption = artist["caption"]["value"]
+                except:
+                    caption = "unknown"
+                    pass
+                if f_name in self.blackList:
+                    continue
+                file_info = self.fileNameParser.parse(f_name, base, caption, uri_key)
+                if not file_info:
+                    self.fob.write(base + '\t' + f_name + '\n')
+                    continue
+
+                canvas = self.build_canvas(file_info, caption)
+                if canvas:
+                    m['sequences'][0]['canvases'].append(canvas)
+                else:
+                    museum = 'unknown'
+                    self.fob.write(base + '\t' + file_info['file_name'] + '\n')
+                x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in
+                            range(16))
+                m['@id'] = '%s/manifest/%s' % (manifestServerRootUrl, x)
+                m['label'] = caption
+
+                with open(manifestfilename, 'w') as outfile:
+                    json.dump(m, outfile)
+
             self.imageParser.close()
-            manifestFile = os.path.join(manifestFolder,base + '.json')
-            with open(manifestFile, 'w') as outfile:
-                json.dump(m, outfile)
+            # manifestFile = os.path.join(manifestFolder,base + '.json')
+            # with open(manifestFile, 'w') as outfile:
+            #    json.dump(m, outfile)
         return m
 
     def build_canvas(self, info, caption):
-        license = '<licence>'
+        license = 'http://licence'
         try:
             image_info = self.imageParser.size(info['file_name'])
             width = int(image_info["width"])
             height = int(image_info["height"])
+            thumbnail = str(image_info["thumbnail"])
         except:
             width = -1
             height = -1
             return None
 
-
         c = {
             '@type': 'sc:Canvas',
             '@id': info['canvas_id'],
-            'label':caption,
+            'label': caption,
             'width': width,
             'height': height,
             'license': license,
@@ -170,23 +180,29 @@ class App(object):
                         'height': height,
                         'service': {
                             '@id': info['image_service_id'],
-                            'dcterms:conformsTo': 'http://library.stanford.edu/iiif/image-api/1.1/conformance.html#level1'
+                            # 'dcterms:conformsTo': 'http://library.stanford.edu/iiif/image-api/1.1/conformance.html#level1'
                         }
                     }
                 }
             ],
 
+            'thumbnail': thumbnail
+        }
+        return c
+
+    '''
             'thumbnail': {
                 '@id': info['thumbnail_id'],
+                '@type': 'dctypes:Image',
+
                 'service': {
                     '@context': "http://iiif.io/api/image/2/context.json",
                     '@id': info['image_service_id'],
                     'profile': "http://iiif.io/api/image/2/level1.json"
                 }
-  }
-        }
-        return c
+                     }
 
+    '''
     '''
     def create_range(self, file_info):
         config = self.config
@@ -200,6 +216,7 @@ class App(object):
             'canvases': []
         }
     '''
+
     def loadFile(self, fileName):
         if not os.path.exists(fileName):
             return
