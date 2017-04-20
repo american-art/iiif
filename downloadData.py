@@ -15,10 +15,7 @@ def sparqlQuery():
         
         base = f[:f.index('.')] # ulan, npg etc.
 
-        if base in 'saam':
-            continue
-        if base not in 'gm':
-            continue
+
         #print base
         f_in = open(os.path.join('sparql',f), 'r')
         
@@ -29,7 +26,7 @@ def sparqlQuery():
             sparql = SPARQLWrapper(map['aac'])
 
         print base
-        sparql.setQuery(f_in.read())
+        sparql.setQuery(f_in.read()+" LIMIT 50")
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
         f_in.close()

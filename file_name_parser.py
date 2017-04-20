@@ -89,10 +89,13 @@ class FileNameParser(object):
         self.canvas_id_set.add(canvas_id)
         canvas_label = '%s' % (caption)
 
+        image_resource_id= file_name
+        '''
         if museum in "ccma":
             image_resource_id = file_name
         else:
             image_resource_id = '%s/full/full/0/native.jpg' % (_id)
+        '''
         image_service_id = _id
 
         thumbnail_id = self.get_thumbnail(file_name,museum)

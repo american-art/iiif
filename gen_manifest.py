@@ -48,12 +48,13 @@ class App(object):
         manifestId = '%s/manifest/%s' % (manifestServerRootUrl, x)
         manifestLabel = config['manifestLabel']
         sequenceId = '%s/sequence/%s/0' % (manifestServerRootUrl, x)
-
+        license = 'http://licence'
         m = {
             '@context': 'http://iiif.io/api/presentation/2/context.json',
             '@type': 'sc:Manifest',
             '@id': manifestId,
             'label': manifestLabel,
+            'license': license,
             'sequences': [
                 {
                     '@type': "sc:Sequence",
@@ -77,7 +78,7 @@ class App(object):
         print len(res1)
 
         cachedFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'museum-cached-data')
-        manifestFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'museum-manifests')
+        manifestFolder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'manifest')
 
         for base, res in res1.iteritems():
             m['sequences'][0]['canvases'][:] = []
@@ -107,7 +108,7 @@ class App(object):
                 manifestfilename = os.path.join(manifestFolder, base, manifest_file_id + '.json')
                 if os.path.exists(manifestfilename):
                     continue
-
+                m['@id'] = '%s/manifest/%s/%s.json' % (manifestServerRootUrl, base, manifest_file_id)
                 try:
                     caption = artist["caption"]["value"]
                 except:
@@ -120,7 +121,7 @@ class App(object):
                     self.fob.write(base + '\t' + f_name + '\n')
                     continue
 
-                canvas = self.build_canvas(file_info, caption)
+                canvas = self.build_canvas(file_info, caption, base, manifest_file_id)
                 if canvas:
                     m['sequences'][0]['canvases'].append(canvas)
                 else:
@@ -128,7 +129,7 @@ class App(object):
                     self.fob.write(base + '\t' + file_info['file_name'] + '\n')
                 x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in
                             range(16))
-                m['@id'] = '%s/manifest/%s' % (manifestServerRootUrl, x)
+                #m['@id'] = '%s/manifest/%s' % (manifestServerRootUrl, x)
                 m['label'] = caption
 
                 with open(manifestfilename, 'w') as outfile:
@@ -140,13 +141,13 @@ class App(object):
             #    json.dump(m, outfile)
         return m
 
-    def build_canvas(self, info, caption):
+    def build_canvas(self, info, caption, museum, manifest_file_id):
         license = 'http://licence'
         try:
-            image_info = self.imageParser.size(info['file_name'])
+            image_info = self.imageParser.size(info['file_name'], museum, manifest_file_id)
             width = int(image_info["width"])
             height = int(image_info["height"])
-            thumbnail = str(image_info["thumbnail"])
+            thumbnail = os.path.join(self.config['manifestServerRootUrl'], str(image_info["thumbnail"]))
         except:
             width = -1
             height = -1
@@ -158,14 +159,8 @@ class App(object):
             'label': caption,
             'width': width,
             'height': height,
-            'license': license,
-            'metadata': [
-                {
-                    'label': 'caption',
-                    'value': caption
-                }
+            #'license': license,
 
-            ],
             'images': [
                 {
                     '@type': 'oa:Annotation',
@@ -180,6 +175,8 @@ class App(object):
                         'height': height,
                         'service': {
                             '@id': info['image_service_id'],
+                            "@context": "http://iiif.io/api/image/2/context.json",
+                            "profile": "http://iiif.io/api/image/2/level1.json"
                             # 'dcterms:conformsTo': 'http://library.stanford.edu/iiif/image-api/1.1/conformance.html#level1'
                         }
                     }
