@@ -2,12 +2,12 @@
 
 import json
 import os
-import random, string
-
-from file_name_parser import FileNameParser
-from image_parser import ImageParser
+import random
+import string
 
 import downloadData
+from file_name_parser import FileNameParser
+from image_parser import ImageParser
 
 
 class App(object):
@@ -44,7 +44,7 @@ class App(object):
         config = self.config
         x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(16))
         manifestServerRootUrl = config['manifestServerRootUrl']
-        manifestServerRootUrl = manifestServerRootUrl.replace("<", "").replace(">", "")
+        #manifestServerRootUrl = manifestServerRootUrl.replace("<", "").replace(">", "")
         manifestId = '%s/manifest/%s' % (manifestServerRootUrl, x)
         manifestLabel = config['manifestLabel']
         sequenceId = '%s/sequence/%s/0' % (manifestServerRootUrl, x)
@@ -54,7 +54,7 @@ class App(object):
             '@type': 'sc:Manifest',
             '@id': manifestId,
             'label': manifestLabel,
-            'license': license,
+            #'license': license,
             'sequences': [
                 {
                     '@type': "sc:Sequence",
@@ -64,8 +64,7 @@ class App(object):
                     'canvases': []
                 }
             ],
-            'structures': [],
-            'seealso': {
+            'seeAlso': {
                 '@id': "",
                 'format': "text/rdf"
             }
@@ -91,23 +90,23 @@ class App(object):
                 # print artist
                 try:
                     uri_key = artist["x"]["value"].split("/")[-1]
-                    m['seealso']['@id'] = artist["x"]["value"]
+                    m['seeAlso']['@id'] = artist["x"]["value"]
                 except:
-                    m['seealso']['@id'] = "unknown"
+                    m['seeAlso']['@id'] = "unknown"
                     uri_key = "unknown"
                     pass
                 try:
                     f_name = artist["image"]["value"]
-                    if 'ccma' in base:
-                        f_name = f_name.replace("512", "512,")
+                    #if 'ccma' in base:
+                    #    f_name = f_name.replace("512", "512,")
                 except:
                     f_name = "unknown"
                     pass
 
                 manifest_file_id = self.fileNameParser.geturlid(f_name, base)
                 manifestfilename = os.path.join(manifestFolder, base, manifest_file_id + '.json')
-                if os.path.exists(manifestfilename):
-                    continue
+                #if os.path.exists(manifestfilename):
+                #    continue
                 m['@id'] = '%s/manifest/%s/%s.json' % (manifestServerRootUrl, base, manifest_file_id)
                 try:
                     caption = artist["caption"]["value"]
@@ -125,20 +124,14 @@ class App(object):
                 if canvas:
                     m['sequences'][0]['canvases'].append(canvas)
                 else:
-                    museum = 'unknown'
                     self.fob.write(base + '\t' + file_info['file_name'] + '\n')
-                x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in
-                            range(16))
-                #m['@id'] = '%s/manifest/%s' % (manifestServerRootUrl, x)
                 m['label'] = caption
 
                 with open(manifestfilename, 'w') as outfile:
                     json.dump(m, outfile)
 
             self.imageParser.close()
-            # manifestFile = os.path.join(manifestFolder,base + '.json')
-            # with open(manifestFile, 'w') as outfile:
-            #    json.dump(m, outfile)
+
         return m
 
     def build_canvas(self, info, caption, museum, manifest_file_id):
@@ -147,7 +140,12 @@ class App(object):
             image_info = self.imageParser.size(info['file_name'], museum, manifest_file_id)
             width = int(image_info["width"])
             height = int(image_info["height"])
-            thumbnail = os.path.join(self.config['manifestServerRootUrl'], str(image_info["thumbnail"]))
+            canvas_width = width
+            canvas_height = height
+            if canvas_width < 1200 or canvas_height < 1200:
+                canvas_width *= 2
+                canvas_height *= 2
+            thumbnail = self.config['manifestServerRootUrl'] + "/" + str(image_info["thumbnail"])
         except:
             width = -1
             height = -1
@@ -157,8 +155,8 @@ class App(object):
             '@type': 'sc:Canvas',
             '@id': info['canvas_id'],
             'label': caption,
-            'width': width,
-            'height': height,
+            'width': canvas_width,
+            'height': canvas_height,
             #'license': license,
 
             'images': [
@@ -185,34 +183,10 @@ class App(object):
 
             'thumbnail': thumbnail
         }
+        if "ccma" not in museum:
+            del c["images"][0]["resource"]["service"]
         return c
 
-    '''
-            'thumbnail': {
-                '@id': info['thumbnail_id'],
-                '@type': 'dctypes:Image',
-
-                'service': {
-                    '@context': "http://iiif.io/api/image/2/context.json",
-                    '@id': info['image_service_id'],
-                    'profile': "http://iiif.io/api/image/2/level1.json"
-                }
-                     }
-
-    '''
-    '''
-    def create_range(self, file_info):
-        config = self.config
-        range_id = '%s/range/%s/ch%s' % (
-        config['manifestServerRootUrl'], config['projectPath'], file_info['chapter_padded'])
-        label = '%s %s' % (config['chapterLabel'], file_info['chapter_unpadded'])
-        return {
-            '@id': range_id,
-            '@type': 'sc:Range',
-            'label': label,
-            'canvases': []
-        }
-    '''
 
     def loadFile(self, fileName):
         if not os.path.exists(fileName):

@@ -15,8 +15,8 @@ def sparqlQuery():
         
         base = f[:f.index('.')] # ulan, npg etc.
 
-
-        #print base
+        #if "ccma" not in base:
+        #    continue
         f_in = open(os.path.join('sparql',f), 'r')
         
         # Send SPARQL query
@@ -26,7 +26,7 @@ def sparqlQuery():
             sparql = SPARQLWrapper(map['aac'])
 
         print base
-        sparql.setQuery(f_in.read()+" LIMIT 50")
+        sparql.setQuery(f_in.read() + " LIMIT 15")
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
         f_in.close()

@@ -1,15 +1,8 @@
 {
   "_comment": "Default config parameters",
-  
-  "imageServerRootUrl": {"saam": "<https://www.saam_imageserverRootUrl>","gm": "<https://www.gm_imageserverRootUrl>", "ima": "<https://www.ima_imageserverRootUrl>",
-                           "autry": "<https://www.autry_imageserverRootUrl>","wam": "<https://www.wam_imageserverRootUrl>","puam": "<https://www.puam_imageserverRootUrl>",
-                        "dma": "<https://www.dma_imageserverRootUrl>","cbm": "<https://www.cbm_imageserverRootUrl>","npg": "<https://www.npg_imageserverRootUrl>",
-  "ccma": "<ccma imageserverRootUrl>"},
+
    "manifestServerRootUrl": "https://american-art.github.io/iiif",
-  "manifestServerRootUrl123": {"saam": "<saam_manifestServerRootUrl>","gm": "<gm_manifestServerRootUrl>", "ima": "<ima_manifestServerRootUrl>",
-                           "autry": "<autry_manifestServerRootUrl>","wam": "<wam_manifestServerRootUrl>","puam": "<puam_imageserverRootUrl>",
-                        "dma": "<dma_manifestServerRootUrl>","cbm": "<cbm_manifestServerRootUrl>","npg": "<npg_manifestServerRootUrl>",
-  "ccma": "<ccma manifestServerRootUrl>"},
+
   "thumbnailServerRootUrl":"https://american-art.github.io/iiif",
   
   "projectPath": "",
@@ -17,8 +10,6 @@
 
   "createChapters": "n",
   
-  "chapterNumDigits": 3,
-  "pageNumDigits": 2,
   "imageExtension": "",
   
   "chapterLabel": "Chapter",
